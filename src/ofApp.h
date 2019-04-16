@@ -1,3 +1,6 @@
+// Example 7: Background Subtraction
+// This is ofApp.h
+
 #pragma once
 #include "ofMain.h"
 #include "ofxOpenCv.h"
@@ -7,16 +10,17 @@ public:
     void setup();
     void update();
     void draw();
-    void keyPressed(int key);
     
-    ofVideoGrabber          vidGrabber;
+    ofVideoGrabber videoGrabber;
     
-    ofxCvGrayscaleImage     colorImg;
-    ofxCvGrayscaleImage     grayImage;
-    ofxCvGrayscaleImage     grayBg;
-    ofxCvGrayscaleImage     grayDiff;
-    ofxCvContourFinder      contourFinder;
+    //Process bytes of image
+    unsigned char * outImage;//Texture to display the processed image
+    unsigned char * input;
+    ofTexture Texture;
     
-    int                     thresholdValue;
-    bool                    bLearnBackground;
+    int w;
+    int h;
+    
+    ofPoint pos; //Coordinates of object
+    
 };

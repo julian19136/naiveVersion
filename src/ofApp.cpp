@@ -4,71 +4,76 @@
 
 //---------------------
 void ofApp::setup(){
-    vidGrabber.setup(0, 0);
     
-    colorImg.allocate(0,0);
-    grayImage.allocate(0,0);
-    grayBg.allocate(0,0);
-    grayDiff.allocate(0,0);
+    // Set capture dimensions of 320x240, a common video size.
+    w = 640;
+    h = 400;
     
-    bLearnBackground = true;
-    thresholdValue = 30;
+    // Open an ofVideoGrabber for the default camera
+    videoGrabber.initGrabber (w,h);
+    
+    outImage = new unsigned char [w * h * 3];
+    
+    Texture.allocate(w, h, GL_RGB);
+
+   
+    
 }
 
 //---------------------
 void ofApp::update(){
     
-    // Ask the video player to update itself.
-    vidGrabber.update();
     
-    if (vidGrabber.isFrameNew()){ // If there is fresh data...
-        
-        // Copy the data from the video player into an ofxCvColorImage
-        colorImg.setFromPixels(vidGrabber.getPixels());
-        
-        // Make a grayscale version of colorImg in grayImage
-        grayImage = colorImg;
-        
-        // If it's time to learn the background;
-        // copy the data from grayImage into grayBg
-        if (bLearnBackground == true){
-            grayBg = grayImage; // Note: this is 'operator overloading'
-            bLearnBackground = false; // Latch: only learn it once.
-        }
-        
-        // Take the absolute value of the difference
-        // between the background and incoming images.
-        grayDiff.absDiff(grayBg, grayImage);
-        
-        // Perform an in-place thresholding of the difference image.
-        grayDiff.threshold(thresholdValue);
-        
-        // Find contours whose areas are betweeen 20 and 25000 pixels.
-        // "Find holes" is true, so we'll also get interior contours.
-        contourFinder.findContours(grayDiff, 2000, 25000, 10, true);
-    }
-}
+    videoGrabber.update();
+    
+    if (videoGrabber.isFrameNew()){
+       unsigned char *input = videoGrabber.getPixels().getData();
+        //Looping through them
+        for (int y = 0; y <h; y ++) {
+        for (int x = 0; x <w; x ++) {
+        //Input pixel (x, y):
+        int r = input [6 * (x + w * (y*2)) + 0];
+        int g = input [6 * (x + w * (y*2)) + 1];
+        int b = input [6 * (x + w * (y*2)) + 2];
+        //Threshold via Blue
+        int result = (r> b + 100 && r > g + 100)? 255: 0;
+        //Write output image will be black or white:
+        outImage[3 * (x + w * y) + 0] = result;
+        outImage[3 * (x + w * y) + 1] = result;
+        outImage[3 * (x + w * y) + 2] = result;}}
+        //Write to a texture for the subsequent withdrawal of its on-screen
+        Texture.loadData(outImage, w, h, GL_RGB);
+    };
+    
+    pos = ofPoint(0, 0);
+    int n = 0; //Number of pixels found
+    for (int y = 0; y <h; y ++) {
+        for (int x = 0; x <w; x ++) {
+        int r = outImage[3 * (x + w * y) + 2]; //Look processed image
+        if (r == 255) { //We have previously labeled as blue dots
+            pos.x += x; pos.y += y;n ++;}}}//Display average
+    if (n> 0) {pos.x/= n;pos.y/= n;}
 
+    
+    
+        
+  
+    
+}
 //---------------------
 void ofApp::draw(){
-    //ofBackground(100,100,100);
     
-    ofSetHexColor(0xffffff);
-    //colorImg.draw(20,20);    // The incoming color image
-    grayImage.draw(0,0);  // A gray version of the incoming video
-    grayBg.draw(0,0);     // The stored background image
-    grayDiff.draw(0,0);  // The thresholded difference image
+    ofSetColor(255, 255, 255);
+
+    videoGrabber.draw(0,0, w, h); //Output frame
     
-    ofNoFill();
+    Texture.draw(0, 0, w, h); //Output the processing result
     
-    // Draw each blob individually from the blobs vector
-    int numBlobs = contourFinder.nBlobs;
-    for (int i=0; i<numBlobs; i++){
-        contourFinder.blobs[i].draw(360,540);
-    }
+    //Display circle around the object
+    ofSetColor(0, 255, 0);//Green
+    ofNoFill(); //Turn off the fill
+    ofDrawCircle(pos.x, pos.y, 20); //Draw a circle on the ref. frame
+    //ofDrawCircle(pos.x+ w, pos.y, 20);//Draw a circle on the Rec. frame
 }
 
-//---------------------
-void ofApp::keyPressed(int key){
-    bLearnBackground = true;
-}
+
